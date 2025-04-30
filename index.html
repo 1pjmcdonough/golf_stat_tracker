@@ -1117,26 +1117,7 @@
                 chartDiv.appendChild(bar);
             });
         }
-        
-        // Add analytics button to the page
-        function addAnalyticsButton() {
-            const actionButtons = document.querySelector('.action-buttons');
-            
-            // Create analytics button
-            const analyticsButton = document.createElement('button');
-            analyticsButton.textContent = 'View Analytics';
-            analyticsButton.onclick = showAnalytics;
-            analyticsButton.style.marginTop = '10px';
-            analyticsButton.style.width = '100%';
-            analyticsButton.style.backgroundColor = '#2196F3';
-            
-            // Add to page
-            actionButtons.appendChild(analyticsButton);
-        }
-        
-        // Call the function to add analytics button
-        addAnalyticsButton();
-        
+                
         // Export round data to CSV
         function exportToCSV() {
             if (roundHistory.length === 0) {
@@ -1187,24 +1168,40 @@
             document.body.removeChild(link);
         }
         
-        // Add export button to the page
-        function addExportButton() {
+        // Function to include both analytics and export buttons side by side
+        function addAnalyticsExportButtons() {
             const historySection = document.querySelector('.history-section');
+            
+            // Create container div for buttons
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.display = 'flex';
+            buttonContainer.style.justifyContent = 'space-between';
+            buttonContainer.style.marginTop = '10px';
+            buttonContainer.style.gap = '10px'; // Add spacing between buttons
+            
+            // Create analytics button
+            const analyticsButton = document.createElement('button');
+            analyticsButton.textContent = 'View Analytics';
+            analyticsButton.onclick = showAnalytics;
+            analyticsButton.style.width = '48%';
+            analyticsButton.style.backgroundColor = '#2196F3';
             
             // Create export button
             const exportButton = document.createElement('button');
             exportButton.textContent = 'Export Data to CSV';
             exportButton.onclick = exportToCSV;
-            exportButton.style.marginTop = '10px';
-            exportButton.style.width = '100%';
+            exportButton.style.width = '48%';
             exportButton.style.backgroundColor = '#ff9800';
             
-            // Add to page
-            historySection.appendChild(exportButton);
+            // Add buttons to container
+            buttonContainer.appendChild(analyticsButton);
+            buttonContainer.appendChild(exportButton);
+            
+            // Add container to page
+            historySection.appendChild(buttonContainer);
         }
         
-        // Call the function to add export button
-        addExportButton();
+        addAnalyticsExportButtons(); // This will add both buttons
     </script>
 </body>
 </html>
