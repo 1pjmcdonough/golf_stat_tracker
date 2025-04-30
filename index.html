@@ -311,6 +311,25 @@
             border-top: none;
             border-radius: 0 0 8px 8px;
         }
+        
+        .par-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .par-selector label {
+            margin: 0 10px;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        
+        .par-selector input[type="radio"] {
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
@@ -329,6 +348,18 @@
                 <span class="hole-number" id="currentHole">1</span>
                 <button onclick="nextHole()">▶</button>
             </div>
+        </div>
+        
+        <div class="par-selector">
+            <label>
+                <input type="radio" name="par" value="3" onclick="setPar(3)"> Par 3
+            </label>
+            <label>
+                <input type="radio" name="par" value="4" onclick="setPar(4)" checked> Par 4
+            </label>
+            <label>
+                <input type="radio" name="par" value="5" onclick="setPar(5)"> Par 5
+            </label>
         </div>
 
         <div class="stats-container">
@@ -475,6 +506,7 @@
                     <thead>
                         <tr>
                             <th>Hole</th>
+                            <th>Par</th>
                             <th>Score</th>
                             <th>Putts</th>
                             <th>FIR</th>
@@ -506,6 +538,7 @@
             bunkers: 0,
             penalties: 0,
             score: 0,
+            par: 4, // Default par is 4
             saved: false
         }));
         
@@ -519,8 +552,30 @@
             updateHistoryTable();
         };
         
+        // Set par for current hole
+        function setPar(parValue) {
+            holeStats[currentHole - 1].par = parValue;
+            
+            // If it's a par 3, disable fairway hit tracking
+            const fairwayHitCard = document.querySelector('.stat-card:nth-child(1)');
+            if (parValue === 3) {
+                fairwayHitCard.style.opacity = '0.5';
+                document.querySelector('.stat-card:nth-child(1) button').disabled = true;
+                holeStats[currentHole - 1].fairwayHit = 0;
+                updateStatDisplay('fairwayHit');
+            } else {
+                fairwayHitCard.style.opacity = '1';
+                document.querySelector('.stat-card:nth-child(1) button').disabled = false;
+            }
+        }
+        
         // Toggle stats (for boolean values like fairway hit)
         function toggleStat(statId) {
+            // If fairwayHit and par 3, don't allow toggling
+            if (statId === 'fairwayHit' && holeStats[currentHole - 1].par === 3) {
+                return;
+            }
+            
             let currentValue = holeStats[currentHole - 1][statId];
             holeStats[currentHole - 1][statId] = currentValue === 0 ? 1 : 0;
             updateStatDisplay(statId);
@@ -553,6 +608,18 @@
                     document.getElementById(stat).textContent = stats[stat];
                 }
             }
+            
+            // Update par radio button
+            const parRadios = document.getElementsByName('par');
+            for (let radio of parRadios) {
+                if (parseInt(radio.value) === stats.par) {
+                    radio.checked = true;
+                    break;
+                }
+            }
+            
+            // Update fairway hit card state based on par
+            setPar(stats.par);
         }
         
         // Navigate to next hole
@@ -590,6 +657,7 @@
         
         // Reset current hole stats
         function resetHoleStats() {
+            const currentPar = holeStats[currentHole - 1].par; // Save current par value
             holeStats[currentHole - 1] = {
                 fairwayHit: 0,
                 greenInReg: 0,
@@ -597,6 +665,7 @@
                 bunkers: 0,
                 penalties: 0,
                 score: 0,
+                par: currentPar, // Keep the par value
                 saved: false
             };
             updateHoleStats();
@@ -613,6 +682,7 @@
                     bunkers: 0,
                     penalties: 0,
                     score: 0,
+                    par: 4, // Default par is 4
                     saved: false
                 }));
                 currentHole = 1;
@@ -633,15 +703,15 @@
             let totalBunkers = 0;
             let totalPenalties = 0;
             
-            holeStats.forEach((hole, index) => {
+            holeStats.forEach((hole) => {
                 if (hole.saved) {
                     totalScore += hole.score;
                     totalPutts += hole.putts;
                     totalBunkers += hole.bunkers;
                     totalPenalties += hole.penalties;
                     
-                    // Only count fairways on par 4s and 5s (assuming holes 1-4 are par 3)
-                    if (index > 3) {
+                    // Only count fairways on par 4s and 5s
+                    if (hole.par > 3) {
                         fairwayOpportunities++;
                         totalFairways += hole.fairwayHit;
                     }
@@ -687,15 +757,15 @@
             let totalBunkers = 0;
             let totalPenalties = 0;
             
-            holeStats.forEach((hole, index) => {
+            holeStats.forEach((hole) => {
                 if (hole.saved) {
                     totalScore += hole.score;
                     totalPutts += hole.putts;
                     totalBunkers += hole.bunkers;
                     totalPenalties += hole.penalties;
                     
-                    // Only count fairways on par 4s and 5s (assuming holes 1-4 are par 3)
-                    if (index > 3) {
+                    // Only count fairways on par 4s and 5s
+                    if (hole.par > 3) {
                         fairwayOpportunities++;
                         totalFairways += hole.fairwayHit;
                     }
@@ -829,59 +899,4 @@
                 
                 round.holeStats.forEach((hole, index) => {
                     if (hole.saved) {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${index + 1}</td>
-                            <td>${hole.score}</td>
-                            <td>${hole.putts}</td>
-                            <td>${hole.fairwayHit ? 'Yes' : 'No'}</td>
-                            <td>${hole.greenInReg ? 'Yes' : 'No'}</td>
-                            <td>${hole.bunkers}</td>
-                            <td>${hole.penalties}</td>
-                        `;
-                        holeDetailTableBody.appendChild(row);
-                    }
-                });
-                
-                // Show the modal
-                document.getElementById('roundDetailsModal').style.display = 'block';
-                
-                // Set the summary tab as active by default
-                document.querySelector('.tablinks').click();
-            }
-        }
-        
-        // Close the modal
-        function closeModal() {
-            document.getElementById('roundDetailsModal').style.display = 'none';
-        }
-        
-        // Open tab content
-        function openTab(evt, tabName) {
-            // Get all tab content and hide them
-            const tabcontent = document.getElementsByClassName('tabcontent');
-            for (let i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = 'none';
-            }
-            
-            // Remove active class from all tab buttons
-            const tablinks = document.getElementsByClassName('tablinks');
-            for (let i = 0; i < tablinks.length; i++) {
-                tablinks[i].className = tablinks[i].className.replace(' active', '');
-            }
-            
-            // Show the current tab and add an active class to the button
-            document.getElementById(tabName).style.display = 'block';
-            evt.currentTarget.className += ' active';
-        }
-        
-        // Close the modal if the user clicks outside of it
-        window.onclick = function(event) {
-            const modal = document.getElementById('roundDetailsModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        };
-    </script>
-</body>
-</html>
+                        const row = document.createElement('
