@@ -363,12 +363,12 @@
         </div>
 
         <div class="stats-container">
-            <div class="stat-card">
+            <div class="stat-card" id="fairwayHitCard">
                 <div class="stat-name">Fairway Hit</div>
                 <div class="stat-controls">
                     <span class="stat-count" id="fairwayHit">0</span>
                     <div class="stat-buttons">
-                        <button onclick="toggleStat('fairwayHit')">Toggle</button>
+                        <button id="fairwayToggleBtn" onclick="toggleStat('fairwayHit')">Toggle</button>
                     </div>
                 </div>
             </div>
@@ -556,16 +556,20 @@
         function setPar(parValue) {
             holeStats[currentHole - 1].par = parValue;
             
+            // Get fairway hit elements
+            const fairwayHitCard = document.getElementById('fairwayHitCard');
+            const fairwayToggleBtn = document.getElementById('fairwayToggleBtn');
+            
             // If it's a par 3, disable fairway hit tracking
-            const fairwayHitCard = document.querySelector('.stat-card:nth-child(1)');
             if (parValue === 3) {
                 fairwayHitCard.style.opacity = '0.5';
-                document.querySelector('.stat-card:nth-child(1) button').disabled = true;
+                fairwayToggleBtn.disabled = true;
+                // Reset fairway hit to 0 for par 3
                 holeStats[currentHole - 1].fairwayHit = 0;
                 updateStatDisplay('fairwayHit');
             } else {
                 fairwayHitCard.style.opacity = '1';
-                document.querySelector('.stat-card:nth-child(1) button').disabled = false;
+                fairwayToggleBtn.disabled = false;
             }
         }
         
@@ -899,4 +903,308 @@
                 
                 round.holeStats.forEach((hole, index) => {
                     if (hole.saved) {
-                        const row = document.createElement('
+                        const holeRow = document.createElement('tr');
+                        
+                        // Calculate score relative to par
+                        let scoreText = hole.score;
+                        let scoreDiff = hole.score - hole.par;
+                        
+                        if (scoreDiff < 0) {
+                            scoreText = `${hole.score} (${scoreDiff})`;
+                        } else if (scoreDiff > 0) {
+                            scoreText = `${hole.score} (+${scoreDiff})`;
+                        }
+                        
+                        holeRow.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${hole.par}</td>
+                            <td>${scoreText}</td>
+                            <td>${hole.putts}</td>
+                            <td>${hole.par > 3 ? (hole.fairwayHit === 1 ? 'Yes' : 'No') : 'N/A'}</td>
+                            <td>${hole.greenInReg === 1 ? 'Yes' : 'No'}</td>
+                            <td>${hole.bunkers}</td>
+                            <td>${hole.penalties}</td>
+                        `;
+                        
+                        holeDetailTableBody.appendChild(holeRow);
+                    }
+                });
+                
+                // Show the modal
+                document.getElementById('roundDetailsModal').style.display = 'block';
+            }
+        }
+        
+        // Close the modal
+        function closeModal() {
+            document.getElementById('roundDetailsModal').style.display = 'none';
+        }
+        
+        // Open tab function for modal
+        function openTab(evt, tabName) {
+            // Hide all tabcontent elements
+            const tabcontent = document.getElementsByClassName('tabcontent');
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = 'none';
+            }
+            
+            // Remove active class from all tablinks
+            const tablinks = document.getElementsByClassName('tablinks');
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(' active', '');
+            }
+            
+            // Show the current tab and add active class to the button
+            document.getElementById(tabName).style.display = 'block';
+            evt.currentTarget.className += ' active';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('roundDetailsModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Analytics functions
+        function showAnalytics() {
+            if (roundHistory.length === 0) {
+                alert('No round data available for analysis.');
+                return;
+            }
+            
+            // Calculate average scores, putts, etc.
+            let totalScores = 0;
+            let totalPutts = 0;
+            let totalFairways = 0;
+            let totalFairwayOpportunities = 0;
+            let totalGreens = 0;
+            let totalGreenOpportunities = 0;
+            
+            roundHistory.forEach(round => {
+                totalScores += round.totalScore;
+                totalPutts += round.totalPutts;
+                totalFairways += round.totalFairways;
+                totalFairwayOpportunities += round.fairwayOpportunities;
+                totalGreens += round.totalGreens;
+                totalGreenOpportunities += round.greenOpportunities;
+            });
+            
+            const avgScore = Math.round(totalScores / roundHistory.length);
+            const avgPutts = Math.round(totalPutts / roundHistory.length);
+            const fairwayPercentage = totalFairwayOpportunities > 0 ? 
+                Math.round((totalFairways / totalFairwayOpportunities) * 100) : 0;
+            const greenPercentage = totalGreenOpportunities > 0 ? 
+                Math.round((totalGreens / totalGreenOpportunities) * 100) : 0;
+            
+            // Create analytics modal
+            const analyticsModal = document.createElement('div');
+            analyticsModal.className = 'modal';
+            analyticsModal.id = 'analyticsModal';
+            
+            analyticsModal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close" onclick="closeAnalyticsModal()">&times;</span>
+                    <h2>Performance Analytics</h2>
+                    
+                    <div class="round-summary">
+                        <div class="summary-card">
+                            <div class="summary-label">Average Score</div>
+                            <div class="summary-value">${avgScore}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Average Putts</div>
+                            <div class="summary-value">${avgPutts}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Fairways Hit %</div>
+                            <div class="summary-value">${fairwayPercentage}%</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Greens in Reg %</div>
+                            <div class="summary-value">${greenPercentage}%</div>
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin-top: 20px;">Recent Trend</h3>
+                    <div id="scoreChart" style="height: 200px; background-color: #f5f5f5; margin-top: 10px; border-radius: 8px; padding: 10px; display: flex; align-items: flex-end;">
+                        <!-- Simple chart will be created here with JS -->
+                    </div>
+                </div>
+            `;
+            
+            // Add to body if not already present
+            if (!document.getElementById('analyticsModal')) {
+                document.body.appendChild(analyticsModal);
+            }
+            
+            // Show the modal
+            document.getElementById('analyticsModal').style.display = 'block';
+            
+            // Create simple chart
+            createScoreChart();
+        }
+        
+        // Close analytics modal
+        function closeAnalyticsModal() {
+            document.getElementById('analyticsModal').style.display = 'none';
+        }
+        
+        // Create simple score chart
+        function createScoreChart() {
+            const chartDiv = document.getElementById('scoreChart');
+            chartDiv.innerHTML = '';
+            
+            // Get last 5 rounds or fewer
+            const recentRounds = [...roundHistory].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-5);
+            
+            // Find min and max scores for scaling
+            let minScore = Infinity;
+            let maxScore = 0;
+            
+            recentRounds.forEach(round => {
+                minScore = Math.min(minScore, round.totalScore);
+                maxScore = Math.max(maxScore, round.totalScore);
+            });
+            
+            // Ensure we have a reasonable range
+            const range = maxScore - minScore;
+            minScore = Math.max(0, minScore - Math.floor(range * 0.1));
+            maxScore = maxScore + Math.ceil(range * 0.1);
+            
+            // Calculate bar width
+            const barWidth = Math.floor(100 / recentRounds.length) - 5;
+            
+            // Create bars
+            recentRounds.forEach((round, index) => {
+                // Format date for tooltip
+                const dateParts = round.date.split('-');
+                const formattedDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+                
+                // Calculate bar height as percentage of chart height
+                const barHeight = Math.floor(((round.totalScore - minScore) / (maxScore - minScore)) * 160) + 30;
+                
+                const bar = document.createElement('div');
+                bar.style.width = `${barWidth}%`;
+                bar.style.height = `${barHeight}px`;
+                bar.style.backgroundColor = '#4caf50';
+                bar.style.margin = '0 2.5%';
+                bar.style.position = 'relative';
+                bar.style.borderRadius = '5px 5px 0 0';
+                bar.title = `${formattedDate}: ${round.course} - ${round.totalScore}`;
+                
+                // Add score label
+                const scoreLabel = document.createElement('div');
+                scoreLabel.textContent = round.totalScore;
+                scoreLabel.style.position = 'absolute';
+                scoreLabel.style.top = '-25px';
+                scoreLabel.style.width = '100%';
+                scoreLabel.style.textAlign = 'center';
+                scoreLabel.style.fontWeight = 'bold';
+                
+                // Add date label
+                const dateLabel = document.createElement('div');
+                dateLabel.textContent = dateParts[1] + '/' + dateParts[2];
+                dateLabel.style.position = 'absolute';
+                dateLabel.style.bottom = '-25px';
+                dateLabel.style.width = '100%';
+                dateLabel.style.textAlign = 'center';
+                dateLabel.style.fontSize = '12px';
+                
+                bar.appendChild(scoreLabel);
+                bar.appendChild(dateLabel);
+                chartDiv.appendChild(bar);
+            });
+        }
+        
+        // Add analytics button to the page
+        function addAnalyticsButton() {
+            const actionButtons = document.querySelector('.action-buttons');
+            
+            // Create analytics button
+            const analyticsButton = document.createElement('button');
+            analyticsButton.textContent = 'View Analytics';
+            analyticsButton.onclick = showAnalytics;
+            analyticsButton.style.marginTop = '10px';
+            analyticsButton.style.width = '100%';
+            analyticsButton.style.backgroundColor = '#2196F3';
+            
+            // Add to page
+            actionButtons.appendChild(analyticsButton);
+        }
+        
+        // Call the function to add analytics button
+        addAnalyticsButton();
+        
+        // Export round data to CSV
+        function exportToCSV() {
+            if (roundHistory.length === 0) {
+                alert('No round data available to export.');
+                return;
+            }
+            
+            let csvContent = 'data:text/csv;charset=utf-8,';
+            
+            // Add header row
+            csvContent += 'Date,Course,Total Score,Total Putts,Fairways Hit,Fairway %,Greens in Reg,GIR %,Bunkers,Penalties\n';
+            
+            // Add data rows
+            roundHistory.forEach(round => {
+                const fairwayPercentage = round.fairwayOpportunities > 0 ? 
+                    Math.round((round.totalFairways / round.fairwayOpportunities) * 100) : 0;
+                
+                const greenPercentage = round.greenOpportunities > 0 ? 
+                    Math.round((round.totalGreens / round.greenOpportunities) * 100) : 0;
+                
+                const row = [
+                    round.date,
+                    round.course,
+                    round.totalScore,
+                    round.totalPutts,
+                    `${round.totalFairways}/${round.fairwayOpportunities}`,
+                    `${fairwayPercentage}%`,
+                    `${round.totalGreens}/${round.greenOpportunities}`,
+                    `${greenPercentage}%`,
+                    round.totalBunkers,
+                    round.totalPenalties
+                ];
+                
+                csvContent += row.join(',') + '\n';
+            });
+            
+            // Create download link
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'golf_stats.csv');
+            document.body.appendChild(link);
+            
+            // Trigger download
+            link.click();
+            
+            // Clean up
+            document.body.removeChild(link);
+        }
+        
+        // Add export button to the page
+        function addExportButton() {
+            const historySection = document.querySelector('.history-section');
+            
+            // Create export button
+            const exportButton = document.createElement('button');
+            exportButton.textContent = 'Export Data to CSV';
+            exportButton.onclick = exportToCSV;
+            exportButton.style.marginTop = '10px';
+            exportButton.style.width = '100%';
+            exportButton.style.backgroundColor = '#ff9800';
+            
+            // Add to page
+            historySection.appendChild(exportButton);
+        }
+        
+        // Call the function to add export button
+        addExportButton();
+    </script>
+</body>
+</html>
